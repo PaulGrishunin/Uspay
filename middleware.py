@@ -1,9 +1,18 @@
- 
+import jwt
+from simple_print.functions import sprint_f
+from starlette.authentication import AuthCredentials
+from starlette.authentication import AuthenticationBackend
+from starlette.authentication import AuthenticationError
+from starlette.authentication import BaseUser
+from starlette.middleware.base import BaseHTTPMiddleware
+
+from settings import DEBUG
+
+
 class JWTUser(BaseUser):
-    def __init__(self, username: str, user_id: int, email: str, token: str, **kw) -> None:
-        self.username = username
+    def __init__(self, login: str, user_id: int, token: str, **kw) -> None:
+        self.logine = login
         self.user_id = user_id
-        self.email = email
         self.token = token
 
     @property
@@ -12,10 +21,10 @@ class JWTUser(BaseUser):
 
     @property
     def display_name(self) -> str:
-        return self.username
+        return self.login
 
     def __str__(self) -> str:
-        return f"JWT user: username={self.username}, id={self.user_id}, email={self.email}"
+        return f"JWT user: login={self.login}, id={self.user_id}"
 
 
 class JWTAuthenticationBackend(AuthenticationBackend):
@@ -65,5 +74,12 @@ class JWTAuthenticationBackend(AuthenticationBackend):
 
         return (
             AuthCredentials(["authenticated"]),
-            JWTUser(username=jwt_payload["username"], user_id=jwt_payload["user_id"], email=jwt_payload["email"], token=token),
+            JWTUser(login=jwt_payload["login"], user_id=jwt_payload["user_id"], token=token),
         )
+
+
+class CustomHeaderMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        response.headers["starlette-vue"] = "1"
+        return response
